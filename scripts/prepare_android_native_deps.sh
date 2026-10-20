@@ -13,12 +13,25 @@ SOURCE_SHA256=5d0aaced52921b86f3f2b2eaac18cbfc96184d73e83baf2553c94d9d306c4de9
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
+# BusyBox sha256sum has no --status/--check-stdout. Keep the verification strict
+# but portable across GNU coreutils and BusyBox.
+verify_sha256() {
+    local expected="$1" file="$2" actual
+    actual=$(sha256sum "$file" | cut -d' ' -f1)
+    if [ "$actual" != "$expected" ]; then
+        echo "Checksum mismatch for $file" >&2
+        echo "  expected $expected" >&2
+        echo "  actual   $actual" >&2
+        exit 1
+    fi
+}
+
 mkdir -p "$ROOT/app/src/main/jniLibs/arm64-v8a" "$ROOT/app/src/main/third_party"
 curl -fL "https://repo1.maven.org/maven2/com/microsoft/onnxruntime/onnxruntime-android/${VERSION}/onnxruntime-android-${VERSION}.aar" -o "$TMP/ort.aar"
-echo "$AAR_SHA256  $TMP/ort.aar" | sha256sum --check --status
+verify_sha256 "$AAR_SHA256" "$TMP/ort.aar"
 unzip -p "$TMP/ort.aar" jni/arm64-v8a/libonnxruntime.so > "$ROOT/app/src/main/jniLibs/arm64-v8a/libonnxruntime.so"
 curl -fL "https://github.com/microsoft/onnxruntime/archive/refs/tags/v${VERSION}.tar.gz" -o "$TMP/ort.tar.gz"
-echo "$SOURCE_SHA256  $TMP/ort.tar.gz" | sha256sum --check --status
+verify_sha256 "$SOURCE_SHA256" "$TMP/ort.tar.gz"
 tar -xzf "$TMP/ort.tar.gz" -C "$TMP"
 rm -rf "$ROOT/app/src/main/third_party/onnxruntime"
 mkdir -p "$ROOT/app/src/main/third_party/onnxruntime"

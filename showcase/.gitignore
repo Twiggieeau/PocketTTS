@@ -1,3 +1,4 @@
-# Transient render workspace.
+# Transient render and audit workspaces.
 out/.tmp/
 out/.sheet/
+out/.audit/

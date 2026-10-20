@@ -1,0 +1,92 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Keep the Gradle daemon inside the runner and fail fast on a stalled build.
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx3g"
+
+jobs:
+  build:
+    name: Assemble and unit test
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK packages
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.2.12479018" \
+            "cmake;3.22.1"
+          yes | sdkmanager --licenses > /dev/null || true
+
+      - name: Fetch ONNX Runtime native dependencies
+        run: bash scripts/prepare_android_native_deps.sh
+
+      - name: Verify model pack
+        run: |
+          set -euo pipefail
+          # The model pack is a Git LFS object. checkout@v4 with lfs:true pulls it,
+          # but a pointer file must never reach the build.
+          if [ ! -s PocketTTS-english-FP32.zip ] || [ "$(stat -c%s PocketTTS-english-FP32.zip)" -lt 1000000 ]; then
+            echo "::error::PocketTTS-english-FP32.zip was not fetched from LFS."
+            echo "Its size is $(stat -c%s PocketTTS-english-FP32.zip 2>/dev/null || echo 0) bytes."
+            exit 1
+          fi
+          echo "Model pack present: $(stat -c%s PocketTTS-english-FP32.zip) bytes."
+
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Assemble debug APK
+        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Assemble release APK
+        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: pocket-tts-apk
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            app/build/reports/tests/**
+            app/build/outputs/logs/**
+          if-no-files-found: ignore
+          retention-days: 7
