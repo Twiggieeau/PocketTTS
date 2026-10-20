@@ -63,6 +63,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Star
 import org.pockettts.android.engine.StudioButton as Button
 import org.pockettts.android.engine.StudioTonalButton as FilledTonalButton
 import org.pockettts.android.engine.StudioOutlinedButton as OutlinedButton
@@ -72,6 +73,19 @@ import org.pockettts.android.engine.StudioSlider as Slider
 internal fun PocketApp(app: MainActivity) {
     HapticSurface()
     val destinationState = rememberSaveableStateHolder()
+    // A full-screen destination replaces the tab scaffold entirely. The bottom
+    // dock belongs to the tab level, so a child screen must not carry it.
+    val child = app.destination
+    if (child != null) {
+        StudioBackground {
+            when (child) {
+                "script" -> MultiVoiceScriptScreen(app, app::closeScript)
+                else -> Unit
+            }
+        }
+        AppSheets(app)
+        return
+    }
     StudioBackground {
     Scaffold(containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout),
@@ -282,6 +296,23 @@ private fun PlaybackPanel(app: MainActivity) {
         }
         Spacer(Modifier.height(6.dp))
         ReaderProgress(app, snapshot, stacked)
+        Spacer(Modifier.height(8.dp))
+        // Entry point to the script. It is a full-screen destination, not a
+        // sheet, because editing a script needs the whole viewport.
+        Surface(onClick = app::openScript, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("reader-script"),
+            shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = .65f),
+            border = BorderStroke(.75.dp, LocalGlass.current.border)) {
+            Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Icon(Icons.Default.Star, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(stringResource(R.string.script_entry), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.script_entry_hint), style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+            }
+        }
     }
 }
 
@@ -551,7 +582,7 @@ internal fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun ChoiceRow(title: String, subtitle: String? = null, selected: Boolean? = null, action: () -> Unit) {
+internal fun ChoiceRow(title: String, subtitle: String? = null, selected: Boolean? = null, action: () -> Unit) {
     Surface(onClick = action, shape = MaterialTheme.shapes.medium,
         color = if (selected == true) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = .6f),
         contentColor = if (selected == true) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
@@ -696,6 +727,7 @@ private fun AppSheets(app: MainActivity) {
             }
         }
         "add" -> AddVoiceSheet(app)
+        "script-voice" -> ScriptVoiceSheet(app)
         "engine" -> GlassSheet(stringResource(R.string.generation_parameters), dismiss) {
             if (app.currentPack == null) item { Text(stringResource(R.string.status_no_model)) }
             else {

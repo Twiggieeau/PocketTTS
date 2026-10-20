@@ -29,6 +29,14 @@ class MainActivity : ComponentActivity() {
         private set
     internal var tab by mutableIntStateOf(0)
     internal var sheet by mutableStateOf<String?>(null)
+    /** Full-screen destinations that sit above the tabs. */
+    internal var destination by mutableStateOf<String?>(null)
+    internal var scriptText by mutableStateOf("")
+        private set
+    internal var scriptAssignments by mutableStateOf<Map<String, String>>(emptyMap())
+        private set
+    internal var scriptSelectedLine by mutableIntStateOf(-1)
+        private set
     internal var detail by mutableStateOf<Pair<ModelPack, PackVoice>?>(null)
     internal var confirmation by mutableStateOf<Confirmation?>(null)
     internal data class Confirmation(val title: String, val message: String, val action: String, val destructive: Boolean = false, val confirm: () -> Unit)
@@ -289,7 +297,48 @@ class MainActivity : ComponentActivity() {
         if (normalUi) { out.putInt("cursor", editor.selectionStart); out.putInt("editorScroll", editor.scrollY) }
         super.onSaveInstanceState(out)
     }
-    internal fun switchTab(value: Int) { hideKeyboard(); preview.close(); tab = value }
+    internal fun switchTab(value: Int) { hideKeyboard(); preview.close(); tab = value; destination = null }
+    internal fun openScript() {
+        hideKeyboard(); preview.close()
+        // The script starts from the current document, so the Reader and the
+        // script never disagree about what is being narrated.
+        scriptText = editor.text.toString()
+        destination = "script"
+    }
+    internal fun closeScript() { destination = null; scriptSelectedLine = -1 }
+    internal fun updateScriptText(value: String) { scriptText = value }
+    internal fun selectScriptLine(index: Int) { scriptSelectedLine = index }
+    internal fun assignScriptVoice(speaker: String, voiceId: String) {
+        scriptAssignments = scriptAssignments + mapOf(speaker to voiceId)
+    }
+    /** Split the selected line at its first sentence boundary. */
+    internal fun splitSelectedLine() {
+        val index = scriptSelectedLine
+        if (index < 0) return
+        val lines = scriptText.split('\n').toMutableList()
+        if (index !in lines.indices) return
+        val line = lines[index]
+        val boundary = Regex("(?<=[.!?…])\\s+").find(line)?.range?.first
+        if (boundary == null || boundary <= 0) return
+        val head = line.substring(0, boundary).trim()
+        val tail = line.substring(boundary).trim()
+        if (head.isEmpty() || tail.isEmpty()) return
+        lines[index] = head
+        lines.add(index + 1, tail)
+        scriptText = lines.joinToString("\n")
+    }
+    /** Merge the selected line into the line above it. */
+    internal fun mergeSelectedLine() {
+        val index = scriptSelectedLine
+        if (index <= 0) return
+        val lines = scriptText.split('\n').toMutableList()
+        if (index !in lines.indices) return
+        val merged = (lines[index - 1].trim() + " " + lines[index].trim()).trim()
+        lines[index - 1] = merged
+        lines.removeAt(index)
+        scriptText = lines.joinToString("\n")
+        scriptSelectedLine = index - 1
+    }
     internal fun setHaptics(value: Boolean) {
         hapticsEnabled = value
         editor.isHapticFeedbackEnabled = value

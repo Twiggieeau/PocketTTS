@@ -167,6 +167,63 @@
     <string name="df_retry" tools:ignore="MissingTranslation">Retry noise reduction</string>
     <string name="df_saved_sources" tools:ignore="MissingTranslation">Saved recording comparison</string>
     <string name="ui_close" tools:ignore="MissingTranslation">Close</string>
+    <string name="ui_back" tools:ignore="MissingTranslation">Back</string>
     <string name="trim_adjust" tools:ignore="MissingTranslation">Adjust trim</string>
     <string name="choose_another_wav" tools:ignore="MissingTranslation">Choose another WAV</string>
+
+    <!-- Multi-voice script -->
+    <string name="script_title" tools:ignore="MissingTranslation">Script</string>
+    <string name="script_entry" tools:ignore="MissingTranslation">Multi-voice script</string>
+    <string name="script_entry_hint" tools:ignore="MissingTranslation">Assign a voice to each speaker</string>
+    <string name="script_empty" tools:ignore="MissingTranslation">No spoken lines yet. Write a script in the Reader, or open a project.</string>
+    <string name="script_split" tools:ignore="MissingTranslation">Split line</string>
+    <string name="script_merge" tools:ignore="MissingTranslation">Merge up</string>
+    <string name="script_assign" tools:ignore="MissingTranslation">Choose voices</string>
+    <string name="script_stage_direction" tools:ignore="MissingTranslation">Stage direction</string>
+    <string name="script_speakers" tools:ignore="MissingTranslation">%1$d speakers</string>
+    <string name="script_lines" tools:ignore="MissingTranslation">%1$d lines</string>
+    <string name="script_voice_picker" tools:ignore="MissingTranslation">Assign a voice</string>
+    <string name="script_voice_hint" tools:ignore="MissingTranslation">Each line is spoken by the voice you pick. Untagged text is read by the narrator.</string>
+    <string name="script_speaker_none" tools:ignore="MissingTranslation">No voice assigned</string>
+    <string name="script_narrator" tools:ignore="MissingTranslation">Narrator</string>
+
+    <!-- Projects and batch synthesis -->
+    <string name="project_title" tools:ignore="MissingTranslation">Projects</string>
+    <string name="project_entry" tools:ignore="MissingTranslation">Batch synthesis</string>
+    <string name="project_entry_hint" tools:ignore="MissingTranslation">Synthesise a whole book on this device</string>
+    <string name="project_synthesise_all" tools:ignore="MissingTranslation">Synthesise all</string>
+    <string name="project_queue" tools:ignore="MissingTranslation">Queued</string>
+    <string name="project_running" tools:ignore="MissingTranslation">Synthesising</string>
+    <string name="project_done" tools:ignore="MissingTranslation">Done</string>
+    <string name="project_add_chapter" tools:ignore="MissingTranslation">Add chapter</string>
+    <string name="project_empty" tools:ignore="MissingTranslation">No projects yet.</string>
+
+    <!-- Reference quality -->
+    <string name="quality_title" tools:ignore="MissingTranslation">Reference quality</string>
+    <string name="quality_snr" tools:ignore="MissingTranslation">Signal to noise</string>
+    <string name="quality_clipping" tools:ignore="MissingTranslation">Clipping</string>
+    <string name="quality_loudness" tools:ignore="MissingTranslation">Loudness</string>
+    <string name="quality_duration" tools:ignore="MissingTranslation">Duration</string>
+    <string name="quality_speakers" tools:ignore="MissingTranslation">Speakers</string>
+    <string name="quality_room_tone" tools:ignore="MissingTranslation">Room tone</string>
+    <string name="quality_excellent" tools:ignore="MissingTranslation">Excellent reference</string>
+    <string name="quality_good" tools:ignore="MissingTranslation">Usable reference</string>
+    <string name="quality_poor" tools:ignore="MissingTranslation">Poor reference</string>
+    <string name="quality_fix_enhance" tools:ignore="MissingTranslation">Reduce noise</string>
+    <string name="quality_fix_normalise" tools:ignore="MissingTranslation">Normalise level</string>
+    <string name="quality_fix_trim" tools:ignore="MissingTranslation">Trim silence</string>
+
+    <!-- Export -->
+    <string name="export_title" tools:ignore="MissingTranslation">Export</string>
+    <string name="export_rate" tools:ignore="MissingTranslation">Sample rate</string>
+    <string name="export_rate_native" tools:ignore="MissingTranslation">24 kHz (native)</string>
+    <string name="export_rate_high" tools:ignore="MissingTranslation">48 kHz (for video editing)</string>
+    <string name="export_rate_hint" tools:ignore="MissingTranslation">The decoder produces 24 kHz. 48 kHz doubles the file size and adds no information.</string>
+    <string name="export_provenance" tools:ignore="MissingTranslation">Tag as synthetic speech</string>
+    <string name="export_provenance_hint" tools:ignore="MissingTranslation">Writes a RIFF/INFO metadata tag. It identifies the file, but it is removed by most re-encoders and is not an acoustic watermark.</string>
+
+    <!-- Voice import diagnostics -->
+    <string name="import_suggested_region" tools:ignore="MissingTranslation">Suggested region %1$s – %2$s</string>
+    <string name="import_find_clean" tools:ignore="MissingTranslation">Find clean speech</string>
+    <string name="import_music_warning" tools:ignore="MissingTranslation">Background music was detected in this region. Music damages voice clones; choose a speech-only window.</string>
 </resources>
