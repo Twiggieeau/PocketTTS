@@ -305,24 +305,25 @@ internal class VoiceRecordingDialog(
         worker.execute {
             var recorder: AudioRecord? = null
             val result = runCatching {
-                val size = AudioRecord.getMinBufferSize(PcmWav.RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
+                val rate = ReferenceRate.WORKING_RATE
+                val size = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
                 check(size > 0)
                 if (activity.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
                     throw SecurityException("Microphone permission was revoked")
-                recorder = AudioRecord(MediaRecorder.AudioSource.MIC, PcmWav.RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, size * 2)
+                recorder = AudioRecord(MediaRecorder.AudioSource.MIC, rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, size * 2)
                 val audio = requireNotNull(recorder)
                 check(audio.state == AudioRecord.STATE_INITIALIZED)
                 audio.startRecording()
                 check(audio.recordingState == AudioRecord.RECORDSTATE_RECORDING)
-                PcmWav.Writer(file).use { output ->
+                PcmWav.Writer(file, rate).use { output ->
                     // 50 ms chunks: bounded 20 Hz UI updates, independent of display refresh.
-                    val buffer = ByteArray(PcmWav.RATE / 20 * 2)
-                    while (recording.get() && output.bytes < PcmWav.RATE * 2 * 30) {
-                        val count = audio.read(buffer, 0, minOf(buffer.size, (PcmWav.RATE * 2 * 30 - output.bytes).toInt()))
+                    val buffer = ByteArray(rate / 20 * 2)
+                    while (recording.get() && output.bytes < rate * 2 * 30) {
+                        val count = audio.read(buffer, 0, minOf(buffer.size, (rate * 2 * 30 - output.bytes).toInt()))
                         check(count > 0)
                         output.write(buffer, count)
                         val peak = pcmPeak(buffer, count)
-                        val duration = (output.bytes * 1000 / (PcmWav.RATE * 2)).toInt()
+                        val duration = (output.bytes * 1000 / (rate * 2)).toInt()
                         main.post {
                             if (!closed && phase == Phase.RECORDING) {
                                 levels = levels.drop(1) + peak
@@ -330,7 +331,7 @@ internal class VoiceRecordingDialog(
                             }
                         }
                     }
-                    check(output.bytes >= PcmWav.RATE * 2 * 3) { "Record at least three seconds" }
+                    check(output.bytes >= rate * 2 * 3) { "Record at least three seconds" }
                 }
             }
             runCatching { recorder?.stop() }; recorder?.release()
@@ -339,7 +340,7 @@ internal class VoiceRecordingDialog(
                 working = false; recording.set(false)
                 if (closed) return@post
                 if (result.isSuccess) {
-                    elapsedMs = ((file.length() - 44) * 1000 / (PcmWav.RATE * 2)).toInt()
+                    elapsedMs = ((file.length() - 44) * 1000 / (ReferenceRate.WORKING_RATE * 2)).toInt()
                     feedback?.confirm()
                     inspectRecording()
                 } else phase = if (!hasPermission()) Phase.PERMISSION_DENIED else Phase.FAILED
@@ -403,10 +404,16 @@ internal class VoiceRecordingDialog(
                 val reference = ModelPackRepository.originalSource(pack, alba)
                 val duration = WavSamples.inspect(reference, scanCancelled).durationMs.coerceAtMost(30000)
                 // Calibrated to the shipped reference, bounded for short-reference use.
-                val target = Loudness.measure(WavSamples.decode(reference, 0, duration), cancelled = { closed }).lufs
+                // The shipped reference is stored at the conditioning rate.
+                val target = Loudness.measure(
+                    WavSamples.decode(reference, 0, duration, ReferenceRate.CONDITIONING_RATE),
+                    rate = ReferenceRate.CONDITIONING_RATE, cancelled = { closed }).lufs
                 require(target.isFinite()) { "Reference loudness could not be measured" }
                 val calibrated = target.coerceIn(-24.0, -16.0)
-                val adjustment = Loudness.adjustment(DeepFilterNet3Denoiser.readRecording(if (useEnhanced && enhancedReady) rawEnhanced else rawTrim), calibrated) { closed }
+                // The working buffer is at 48 kHz, so measure it at that rate.
+                val adjustment = Loudness.adjustment(
+                    DeepFilterNet3Denoiser.readRecording(if (useEnhanced && enhancedReady) rawEnhanced else rawTrim),
+                    calibrated, rate = ReferenceRate.WORKING_RATE) { closed }
                 calibrated to adjustment
             }
             main.post {
@@ -455,7 +462,7 @@ internal class VoiceRecordingDialog(
         worker.execute {
             val result = runCatching {
                 if (cachedRange != range || !rawTrim.isFile)
-                    WavSamples.trim(original, rawTrim, range.first, range.second, 1f) else 1f
+                    WavSamples.trim(original, rawTrim, range.first, range.second, 1f, ReferenceRate.WORKING_RATE) else 1f
             }
             main.post {
                 working = false
@@ -476,7 +483,7 @@ internal class VoiceRecordingDialog(
         worker.execute {
             val result = runCatching {
                 if (cachedRange != (trimStart to trimEnd) || !rawTrim.isFile) {
-                    WavSamples.trim(original, rawTrim, trimStart, trimEnd, 1f)
+                    WavSamples.trim(original, rawTrim, trimStart, trimEnd, 1f, ReferenceRate.WORKING_RATE)
                 }
                 val before = DeepFilterNet3Denoiser.waveform(DeepFilterNet3Denoiser.readRecording(rawTrim))
                 main.post { if (!closed) beforeLevels = before }
@@ -545,14 +552,18 @@ internal class VoiceRecordingDialog(
                         val pcm = DeepFilterNet3Denoiser.readRecording(destination)
                         return Math.pow(10.0, editingVoice!!.edit!!.effectiveDb / 20.0).toFloat() to DeepFilterNet3Denoiser.waveform(pcm)
                     }
-                    val pcm = DeepFilterNet3Denoiser.readRecording(source)
+                    // The working buffer is at 48 kHz so DeepFilterNet3 sees the band
+                    // it was trained on. The conditioning reference is written at
+                    // 24 kHz, the rate the model expects, in one conversion here.
+                    val working = DeepFilterNet3Denoiser.readRecording(source)
+                    val pcm = ReferenceRate.toConditioning(working, ReferenceRate.WORKING_RATE)
                     val gain = target?.let {
                         try { minOf(requested, PcmGain.linear(Loudness.adjustment(pcm, it) { closed }.gainDb)) }
                         // Silence has no loudness target; never amplify denoising residue.
                         catch (_: Loudness.SilentInput) { minOf(requested, 1f) }
                     } ?: requested
                     val effective = PcmGain.apply(pcm, gain)
-                    PcmWav.Writer(destination).use { it.write(pcm) }
+                    PcmWav.Writer(destination, ReferenceRate.CONDITIONING_RATE).use { it.write(pcm) }
                     return effective to DeepFilterNet3Denoiser.waveform(pcm)
                 }
                 render(rawTrim, trimmed, false) to if (hasEnhanced) render(rawEnhanced, enhanced, true) else null

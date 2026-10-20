@@ -80,14 +80,50 @@ internal object PcmWav {
         }
     }
 
-    fun concatenate(files: List<File>, output: OutputStream) {
-        val size = files.sumOf { it.length() - 44 }
-        output.write(header(size))
+    /**
+     * Concatenate chunk files into one WAV stream.
+     *
+     * [rate] is the output sample rate. The default is the model's native
+     * [RATE]; a higher rate is an explicit choice for video editing and does
+     * not add information, because the decoder already produces [RATE].
+     */
+    fun concatenate(files: List<File>, output: OutputStream, rate: Int = RATE) {
+        require(rate == RATE || rate == ReferenceRate.WORKING_RATE) { "Unsupported export rate" }
+        if (rate == RATE) {
+            val size = files.sumOf { it.length() - 44 }
+            output.write(header(size))
+            files.forEach { file ->
+                file.inputStream().buffered().use { input ->
+                    val actual = ByteArray(44)
+                    require(input.read(actual) == 44 && actual.contentEquals(header(file.length() - 44)))
+                    input.copyTo(output)
+                }
+            }
+            return
+        }
+        // Resample each chunk and emit a single 48 kHz stream.
+        val samples = ArrayList<Float>(files.size * 4096)
         files.forEach { file ->
-            file.inputStream().buffered().use { input ->
-                val actual = ByteArray(44)
-                require(input.read(actual) == 44 && actual.contentEquals(header(file.length() - 44)))
-                input.copyTo(output)
+            val pcm = readSamples(file)
+            samples.addAll(ReferenceRate.toWorking(pcm, RATE).toList())
+        }
+        val merged = samples.toFloatArray()
+        val size = merged.size * 2L
+        output.write(header(size, rate))
+        val buffer = ByteBuffer.allocate(merged.size * 2).order(ByteOrder.LITTLE_ENDIAN)
+        merged.forEach { buffer.putShort((it.coerceIn(-1f, 1f) * 32767f).toInt().toShort()) }
+        output.write(buffer.array())
+    }
+
+    /** Read a canonical PCM16 mono WAV file into normalised floats. */
+    fun readSamples(file: File): FloatArray {
+        RandomAccessFile(file, "r").use { input ->
+            val header = ByteArray(44); input.readFully(header)
+            val bytes = (file.length() - 44).toInt()
+            require(bytes >= 0 && bytes % 2 == 0) { "Invalid WAV length" }
+            val pcm = ByteArray(bytes); input.readFully(pcm)
+            return FloatArray(pcm.size / 2) { index ->
+                ((pcm[index * 2].toInt() and 255) or (pcm[index * 2 + 1].toInt() shl 8)).toShort() / 32768f
             }
         }
     }

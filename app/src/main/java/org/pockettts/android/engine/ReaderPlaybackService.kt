@@ -341,7 +341,7 @@ class ReaderPlaybackService : Service() {
         releasePlayer(); playWhenReady = false; state = State.IDLE
         abandonFocus(); publish(); endForeground()
     }
-    fun export(uri: Uri) {
+    internal fun export(uri: Uri, options: ExportOptions = ExportOptions()) {
         val s = session
         if (s == null || !s.complete) { lastMessage = getString(R.string.reader_export_unavailable); publish(); return }
         if (exporting) return
@@ -351,7 +351,23 @@ class ReaderPlaybackService : Service() {
         worker.execute {
             val result = runCatching {
                 require(uri.scheme == "content")
-                requireNotNull(contentResolver.openOutputStream(uri, "wt")).use { PcmWav.concatenate(files, it) }
+                // Render to a temporary file first so the provenance tag can be
+                // written into the container before it is handed to the user.
+                val staged = File(cacheDir, "export-${System.currentTimeMillis()}.wav")
+                try {
+                    staged.outputStream().use { output ->
+                        PcmWav.concatenate(files, output, options.rate)
+                    }
+                    if (options.provenance) {
+                        // A RIFF/INFO metadata tag. It identifies the file as
+                        // synthetic speech; it is not an acoustic watermark and
+                        // does not survive re-encoding.
+                        Provenance.tag(staged, Provenance.stamp())
+                    }
+                    requireNotNull(contentResolver.openOutputStream(uri, "wt")).use { target ->
+                        staged.inputStream().use { source -> source.copyTo(target) }
+                    }
+                } finally { staged.delete() }
             }
             result.exceptionOrNull()?.let { Log.e("PocketTTS", "READER_EXPORT_FAILED", it) }
             main.post {

@@ -25,12 +25,21 @@ public:
         options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
         session_ = Ort::Session(env_, path, options);
     }
+    // Denoise mono PCM at the DeepFilterNet3 native rate (48 kHz).
+    //
+    // The graph is calibrated for 48 kHz: 960-sample STFT frames and ERB bands
+    // sized for that rate. Audio arrives already at 48 kHz, so no resampling
+    // happens here. A 24 kHz path exists for compatibility but is not used by
+    // the reference pipeline, which would otherwise hand the network an empty
+    // 12-24 kHz band.
+    static constexpr int kNativeRate = 48000;
+
     std::vector<float> process(const std::vector<float>& pcm) {
-        if (pcm.size() < 24000 * 3 || pcm.size() > 24000 * 30)
-            throw std::invalid_argument("Record between 3 and 30 seconds at 24000 Hz");
+        if (pcm.size() < kNativeRate * 3 || pcm.size() > kNativeRate * 30)
+            throw std::invalid_argument("Record between 3 and 30 seconds at 48000 Hz");
         for (float sample : pcm) if (!std::isfinite(sample) || std::abs(sample) > 1.001f)
             throw std::invalid_argument("Invalid PCM sample");
-        auto input = speech_core::Resampler::resample(pcm.data(), pcm.size(), 24000, 48000);
+        const auto& input = pcm;
         std::vector<float> re, im, erb, spec;
         dsp::analyze(input.data(), input.size(), config_, window_, re, im);
         const int frames = dsp::frame_count(input.size(), config_);
@@ -53,7 +62,7 @@ public:
         dsp::apply_network_output(re, im, result[0].GetTensorData<float>(), result[1].GetTensorData<float>(),
                                  frames, config_, widths_, enhancedRe, enhancedIm);
         dsp::synthesize(enhancedRe, enhancedIm, frames, config_, window_, input.data(), input.size());
-        auto output = speech_core::Resampler::resample(input.data(), input.size(), 48000, 24000);
+        const auto& output = input;
         if (output.size() != pcm.size()) throw std::runtime_error("Denoising changed sample count");
         for (float sample : output) if (!std::isfinite(sample))
             throw std::runtime_error("DeepFilterNet3 returned non-finite audio");

@@ -56,7 +56,7 @@ internal class DeepFilterNet3Denoiser(context: Context) : AutoCloseable {
         val output = nativeProcess(handle, input)
         require(output.size == input.size && output.all { it.isFinite() })
         PcmGain.apply(output, 1f) // Preserve dynamics instead of hard-clipping post-model peaks.
-        try { PcmWav.Writer(enhanced).use { it.write(output) } }
+        try { PcmWav.Writer(enhanced, ReferenceRate.WORKING_RATE).use { it.write(output) } }
         catch (error: Throwable) { enhanced.delete(); throw error }
         return before to waveform(output)
     }
@@ -70,14 +70,16 @@ internal class DeepFilterNet3Denoiser(context: Context) : AutoCloseable {
     companion object {
         private val sessionSlot = java.util.concurrent.Semaphore(1, true)
         const val MODEL_SHA = "e1157049059434ae0d5857e32c812abea227b975e946b2eb64d001abbce156d3"
-        // Accepts canonical PCM16 mono 24 kHz only; imported WAVs are normalized
-        // separately, never overwriting the original reference file.
+        // Accepts canonical PCM16 mono WAV at the working rate only; imported
+        // WAVs are normalized separately, never overwriting the original
+        // reference file.
         fun readRecording(file: File): FloatArray {
+            val rate = ReferenceRate.WORKING_RATE
             val bytes = file.length() - 44
-            require(bytes in (PcmWav.RATE * 2 * 3L)..(PcmWav.RATE * 2 * 30L) && bytes % 2 == 0L) { "Invalid recording length" }
+            require(bytes in (rate * 2 * 3L)..(rate * 2 * 30L) && bytes % 2 == 0L) { "Invalid recording length" }
             return RandomAccessFile(file, "r").use { input ->
                 val header = ByteArray(44); input.readFully(header)
-                require(header.contentEquals(PcmWav.header(bytes))) { "Expected mono PCM16 WAV at 24000 Hz" }
+                require(header.contentEquals(PcmWav.header(bytes, rate))) { "Expected mono PCM16 WAV at 48000 Hz" }
                 val pcm = ByteArray(bytes.toInt()); input.readFully(pcm)
                 FloatArray(pcm.size / 2) { index ->
                     ((pcm[index * 2].toInt() and 255) or (pcm[index * 2 + 1].toInt() shl 8)).toShort() / 32768f

@@ -37,9 +37,10 @@ internal object Loudness {
         return Measurement(integrated, peak, estimatedPeak(samples, peak, cancelled))
     }
 
-    fun adjustment(samples: FloatArray, target: Double, cancelled: () -> Boolean = { false }): Adjustment {
+    fun adjustment(samples: FloatArray, target: Double, rate: Int = PcmWav.RATE,
+                   cancelled: () -> Boolean = { false }): Adjustment {
         require(target.isFinite() && target in -40.0..-10.0)
-        val m = measure(samples, cancelled = cancelled)
+        val m = measure(samples, rate, cancelled)
         if (!m.lufs.isFinite() || m.lufs < -60) throw SilentInput()
         val desired = target - m.lufs
         // Conservative intersample estimate with margin; not certified dBTP metering.

@@ -4,7 +4,7 @@
 #include "dr_wav.h"
 
 extern "C" JNIEXPORT jfloatArray JNICALL
-Java_org_pockettts_android_engine_WavSamples_nativeDecode(JNIEnv* env, jobject, jstring path, jint startMs, jint endMs) {
+Java_org_pockettts_android_engine_WavSamples_nativeDecode(JNIEnv* env, jobject, jstring path, jint startMs, jint endMs, jint targetRate) {
     const char* chars = env->GetStringUTFChars(path, nullptr);
     if (!chars) return nullptr;
     drwav wav{};
@@ -15,6 +15,9 @@ Java_org_pockettts_android_engine_WavSamples_nativeDecode(JNIEnv* env, jobject, 
     try {
         if (wav.channels < 1 || wav.channels > 8 || wav.sampleRate < 8000 || wav.sampleRate > 192000 || startMs < 0 || endMs < -1)
             throw std::invalid_argument("Invalid WAV format or selection");
+        // The denoiser runs at 48 kHz; the conditioning reference is 24 kHz.
+        if (targetRate != 24000 && targetRate != 48000)
+            throw std::invalid_argument("Unsupported target sample rate");
         const auto first = static_cast<uint64_t>(startMs) * wav.sampleRate / 1000;
         const auto last = endMs == -1 ? wav.totalPCMFrameCount : static_cast<uint64_t>(endMs) * wav.sampleRate / 1000;
         if (last > wav.totalPCMFrameCount || first >= last || last - first < wav.sampleRate * 3ULL || last - first > wav.sampleRate * 30ULL)
@@ -38,7 +41,7 @@ Java_org_pockettts_android_engine_WavSamples_nativeDecode(JNIEnv* env, jobject, 
             }
             offset += frames;
         }
-        const auto pcm = speech_core::Resampler::resample(mono.data(), mono.size(), wav.sampleRate, 24000);
+        const auto pcm = speech_core::Resampler::resample(mono.data(), mono.size(), wav.sampleRate, targetRate);
         auto result = env->NewFloatArray(pcm.size());
         if (result) env->SetFloatArrayRegion(result, 0, pcm.size(), pcm.data());
         return result;
@@ -109,7 +112,7 @@ Java_org_pockettts_android_engine_DeepFilterNet3Denoiser_nativeProcess(JNIEnv* e
     try {
         if (!handle || !samples) throw std::invalid_argument("Denoiser is closed or PCM is missing");
         const auto count = env->GetArrayLength(samples);
-        if (count < 72000 || count > 720000) throw std::invalid_argument("Invalid recording length");
+        if (count < 48000 * 3 || count > 48000 * 30) throw std::invalid_argument("Invalid recording length");
         std::vector<float> input(count);
         env->GetFloatArrayRegion(samples, 0, count, input.data());
         if (env->ExceptionCheck()) return nullptr;
