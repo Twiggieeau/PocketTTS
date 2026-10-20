@@ -35,18 +35,34 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      # The runner image already ships cmdline-tools. Accept the licences
+      # before any action tries to use sdkmanager, otherwise setup-android
+      # fails on the "tools" package it looks for.
+      - name: Accept Android SDK licences
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$(command -v sdkmanager || echo "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager")"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" --list_installed 2>/dev/null | head -20 || true
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+          cmdline-tools-version: '11076708'
 
       - name: Install SDK packages
         run: |
-          sdkmanager --install \
+          set -euo pipefail
+          SDKMANAGER="$(command -v sdkmanager || echo "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager")"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" --install \
             "platform-tools" \
             "platforms;android-35" \
             "build-tools;35.0.0" \
             "ndk;27.2.12479018" \
             "cmake;3.22.1"
-          yes | sdkmanager --licenses > /dev/null || true
+          "$SDKMANAGER" --list_installed
 
       - name: Fetch ONNX Runtime native dependencies
         run: bash scripts/prepare_android_native_deps.sh
