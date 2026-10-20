@@ -26,6 +26,22 @@ jobs:
         with:
           lfs: true
 
+      - name: Fetch the model pack from LFS
+        # checkout@v4 runs `git lfs fetch` against a shallow ref, which can
+        # leave the pointer in place. Fetch the object explicitly so the build
+        # never sees a 134-byte pointer.
+        run: |
+          set -euo pipefail
+          git lfs install --local
+          git lfs fetch --include="PocketTTS-english-FP32.zip" origin main
+          git lfs checkout PocketTTS-english-FP32.zip
+          size=$(stat -c%s PocketTTS-english-FP32.zip)
+          echo "Model pack: $size bytes"
+          if [ "$size" -lt 1000000 ]; then
+            echo "::error::The model pack is still an LFS pointer."
+            exit 1
+          fi
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -70,14 +86,14 @@ jobs:
       - name: Verify model pack
         run: |
           set -euo pipefail
-          # The model pack is a Git LFS object. checkout@v4 with lfs:true pulls it,
-          # but a pointer file must never reach the build.
-          if [ ! -s PocketTTS-english-FP32.zip ] || [ "$(stat -c%s PocketTTS-english-FP32.zip)" -lt 1000000 ]; then
+          # The model pack is a Git LFS object. A pointer file must never
+          # reach the build.
+          size=$(stat -c%s PocketTTS-english-FP32.zip)
+          echo "Model pack present: $size bytes."
+          if [ "$size" -lt 1000000 ]; then
             echo "::error::PocketTTS-english-FP32.zip was not fetched from LFS."
-            echo "Its size is $(stat -c%s PocketTTS-english-FP32.zip 2>/dev/null || echo 0) bytes."
             exit 1
           fi
-          echo "Model pack present: $(stat -c%s PocketTTS-english-FP32.zip) bytes."
 
       - name: Unit tests
         run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
