@@ -73,6 +73,33 @@ Actual application captures. Audio examples use attributed reference or syntheti
 </tr>
 </table>
 
+## Design showcase
+
+A mockup of the next iteration of the app — a fuller studio around the existing
+on-device engine, with multi-voice scripts, prosody control, batch synthesis,
+reference-quality scoring and consent capture.
+
+See [`showcase/`](showcase/) for the screens, the feature notes and the build
+script. The mockups are generated from HTML/CSS/SVG using the same design tokens
+as the app, so they can be re-rendered at any size.
+
+```bash
+cd showcase && node build.mjs && node contact-sheet.mjs
+```
+
+<table>
+<tr>
+<td align="center"><img src="showcase/out/01-reader.png" width="230" alt="Reader mockup"><br>Reader</td>
+<td align="center"><img src="showcase/out/04-voices.png" width="230" alt="Voice library mockup"><br>Voice library</td>
+<td align="center"><img src="showcase/out/10-trim.png" width="230" alt="Trim and enhance mockup"><br>Trim &amp; enhance</td>
+</tr>
+<tr>
+<td align="center"><img src="showcase/out/03-multi-voice.png" width="230" alt="Multi-voice script mockup"><br>Multi-voice</td>
+<td align="center"><img src="showcase/out/15-prosody.png" width="230" alt="Prosody lab mockup"><br>Prosody lab</td>
+<td align="center"><img src="showcase/out/13-quality.png" width="230" alt="Reference quality mockup"><br>Quality report</td>
+</tr>
+</table>
+
 ## Get started
 
 APK downloads are published through [GitHub Releases](https://github.com/Rafin14/PocketTTS/releases). You can also [build from source](docs/BUILDING.md).

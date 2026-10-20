@@ -1,0 +1,116 @@
+/* ==========================================================================
+   Pocket TTS — showcase design tokens
+   Values mirror app/src/main/java/org/pockettts/android/engine/PocketTheme.kt
+   and DESIGN_SYSTEM.md so the mockup and the shipped app share one language.
+   1 CSS unit = 1 dp = 1 sp at the base scale.
+   ========================================================================== */
+
+:root {
+  /* Type scale — StudioTypography */
+  --t-display: 700 48px/52px "Open Sans", "Noto Sans", system-ui, sans-serif;
+  --t-h1: 700 30px/35px "Open Sans", "Noto Sans", system-ui, sans-serif;
+  --t-h2: 600 28px/33px "Open Sans", "Noto Sans", system-ui, sans-serif;
+  --t-title: 600 20px/26px "Open Sans", "Noto Sans", system-ui, sans-serif;
+  --t-title-md: 600 17px/23px "Open Sans", "Noto Sans", system-ui, sans-serif;
+  --t-title-sm: 600 14px/20px "Open Sans", "Noto Sans", system-ui, sans-serif;
+  --t-body: 400 16px/24px "Open Sans", "Noto Sans", system-ui, sans-serif;
+  --t-body-md: 400 15px/22px "Open Sans", "Noto Sans", system-ui, sans-serif;
+  --t-body-sm: 400 13px/19px "Open Sans", "Noto Sans", system-ui, sans-serif;
+  --t-label: 600 13px/18px "Open Sans", "Noto Sans", system-ui, sans-serif;
+  --t-label-md: 500 12px/17px "Open Sans", "Noto Sans", system-ui, sans-serif;
+  --t-label-sm: 500 11px/15px "Open Sans", "Noto Sans", system-ui, sans-serif;
+
+  /* Geometry */
+  --r-card: 24px;
+  --r-sheet: 34px;
+  --r-button: 14px;
+  --r-pill: 999px;
+  --r-dock: 26px;
+
+  /* Spacing */
+  --page: 20px;
+  --gap: 12px;
+  --action-gap: 10px;
+  --section: 18px;
+
+  /* Brand accents — shared by light and dark */
+  --azure: #477ae8;
+  --violet: #765acd;
+  --teal: #307890;
+  --amber: #986129;
+  --brand: linear-gradient(135deg, #477ae8 0%, #765acd 100%);
+  --brand-soft: linear-gradient(135deg, rgba(71,122,232,.22) 0%, rgba(118,90,205,.20) 100%);
+
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* ---------------------------------------------------------------- Dark --- */
+:root,
+[data-theme="dark"] {
+  --bg: #0b0e19;
+  --bg-2: #0e1222;
+  --surface: #1b2337;
+  --surface-low: #151d30;
+  --surface-high: #263149;
+  --surface-highest: #303d59;
+  --text: #f4f6ff;
+  --text-2: #bfcbe3;
+  --text-3: #8695b5;
+  --accent: #b4c4ff;
+  --accent-strong: #4a5ed6;
+  --accent-strong-2: #5568e0;
+  --on-accent: #ffffff;
+  --accent-container: #293e72;
+  --on-accent-container: #e6ecff;
+  --selected: #1f2c4e;
+  --outline: #9eafcf;
+  --outline-2: #40516d;
+  --glass: rgba(27, 35, 55, .95);
+  --glass-sheet: #182136;
+  --glass-border: #435473;
+  --success: #72e5bc;
+  --success-dim: rgba(114, 229, 188, .12);
+  --error: #ffb4ab;
+  --warn: #ffcf70;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .4);
+  --shadow-2: 0 3px 12px rgba(0, 0, 0, .45);
+  --shadow-3: 0 12px 34px rgba(0, 0, 0, .55);
+  --grain: radial-gradient(120% 70% at 96% 0%, rgba(72, 94, 214, .16) 0%, transparent 62%),
+           radial-gradient(110% 60% at 2% 64%, rgba(118, 90, 205, .12) 0%, transparent 60%);
+  --track: #2a3550;
+}
+
+/* --------------------------------------------------------------- Light --- */
+[data-theme="light"] {
+  --bg: #f0f3fb;
+  --bg-2: #eef2fb;
+  --surface: #fcfdff;
+  --surface-low: #f5f7fd;
+  --surface-high: #e4eaf7;
+  --surface-highest: #dbe3f3;
+  --text: #17213a;
+  --text-2: #4c5973;
+  --text-3: #6c7a95;
+  --accent: #4056c7;
+  --accent-strong: #4056c7;
+  --accent-strong-2: #4a5ed6;
+  --on-accent: #ffffff;
+  --accent-container: #e2e8ff;
+  --on-accent-container: #182d67;
+  --selected: #e6ecff;
+  --outline: #697990;
+  --outline-2: #cbd5e8;
+  --glass: rgba(252, 253, 255, .93);
+  --glass-sheet: #fafcff;
+  --glass-border: #d0daed;
+  --success: #116743;
+  --success-dim: rgba(17, 103, 67, .1);
+  --error: #ba1a1a;
+  --warn: #8a5a00;
+  --shadow-1: 0 1px 2px rgba(23, 33, 58, .07);
+  --shadow-2: 0 3px 12px rgba(23, 33, 58, .08);
+  --shadow-3: 0 12px 30px rgba(23, 33, 58, .14);
+  --grain: radial-gradient(120% 70% at 96% 0%, rgba(64, 86, 199, .1) 0%, transparent 62%),
+           radial-gradient(110% 60% at 2% 64%, rgba(118, 90, 205, .08) 0%, transparent 60%);
+  --track: #d5dded;
+}
