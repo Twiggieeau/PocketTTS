@@ -1,0 +1,73 @@
+POCKET TTS — DESIGN SHOWCASE
+============================
+
+A mockup of a next-generation on-device Android text-to-speech app with
+voice cloning, audio editing before cloning, and an extended feature set.
+
+WHAT IS IN HERE
+---------------
+  START-HERE.txt   This file.
+  README.md        Full notes: the feature ideas behind each screen and the
+                   design-system mapping to the real app.
+  build.mjs        Renders every screen to out/*.png  (node build.mjs)
+  contact-sheet.mjs Renders out/contact-sheet.png — all screens on one page.
+  src/             The mockup source:
+                     tokens.css    colour + type tokens, mirrored from the
+                                   app's PocketTheme.kt
+                     base.css      component library (cards, buttons, sheets,
+                                   sliders, waveforms, navigation dock)
+                     lib.js        icon set, speech-waveform generator, helpers
+                     screens-a.js  primary application screens
+                     screens-b.js  sheets, dialogs and light-theme variants
+  out/             The rendered deliverable:
+                     29 screen PNGs, each 1080x2400 px (360x800 dp at 3x DPR)
+                     contact-sheet.png — one-page overview of all screens
+                     index.html    a live gallery of every screen
+
+HOW TO VIEW IT
+--------------
+  Option A — the gallery (recommended)
+    Open out/index.html in any desktop browser.
+
+  Option B — the contact sheet
+    Open out/contact-sheet.png. Everything on one page.
+
+  Option C — the individual screens
+    Open any PNG in out/. They are sized to drop straight into a README
+    next to real app screenshots, at 3x device pixel ratio.
+
+  Option D — on your phone
+    Copy the whole folder to the device and open out/index.html in
+    Chrome. The screens are 360x800 dp, so they scale cleanly.
+
+HOW TO REBUILD
+--------------
+  Requires: Node 18+ and a `chromium` binary on PATH.
+  No network access and no image assets are needed — every pixel is
+  HTML/CSS/SVG.
+
+    node build.mjs              # all 29 screens + out/index.html
+    node build.mjs --only=10,27 # re-render just the matching screens
+    node contact-sheet.mjs      # out/contact-sheet.png
+
+SCREEN INDEX
+------------
+  01  Reader                     16  Batch project
+  02  Reader, playing            17  Export
+  03  Multi-voice script         18  Settings
+  04  Voice library              19  Background playback (lock screen)
+  05  Voice detail               20  Voice picker sheet
+  06  Add a voice                21  Recording sheet
+  07  Record a sample            22  Before / after sheet
+  08  Import audio               23  Confirm delete dialog
+  09  Extract from video         24  Export notification
+  10  Trim the reference         25  System TTS engine sheet
+  11  Before / after             26  Light theme — voice library
+  12  Loudness master            27  Light theme — trim & enhance
+  13  Reference quality          28  Light theme — reader
+  14  Consent & provenance       29  Light theme — consent
+  15  Prosody lab
+
+Note: the mockup shows a *proposed* next iteration. It is not a
+build of the app and contains no real audio, model weights or code
+from the Android application.
